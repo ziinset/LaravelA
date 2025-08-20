@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\admin;
+use App\Models\konten;
 use App\Models\siswa;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -21,7 +22,11 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
-        admin::factory()->create();
+        admin::factory()->dataadmin1()->create();
+        admin::factory()->dataadmin2()->create();
         siswa::factory()->count(5)->create();
+
+        // Seed konten data
+        konten::factory()->count(3)->create();
     }
 }

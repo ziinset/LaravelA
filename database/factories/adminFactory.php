@@ -22,4 +22,20 @@ class adminFactory extends Factory
             'password' => Hash::make('admin'),
         ];
     }
+    public function dataadmin1()
+    {
+    return $this->state([
+    'username' => 'admin',
+    'password' => Hash::make('admin'),
+    'role' => 'admin',
+    ]);
+    }
+    public function dataadmin2()
+    {
+    return $this->state([
+    'username' => 'guru',
+    'password' => Hash::make('guru'),
+    'role' => 'guru',
+    ]);
+    }
 }
