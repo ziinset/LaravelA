@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('dataadmin', function (Blueprint $table) {
-            $table->id();
+            $table->id('id');
             $table->string('username')->unique();
             $table->string('password');
             $table->string('role')->default('admin');

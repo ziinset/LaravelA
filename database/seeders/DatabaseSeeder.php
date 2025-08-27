@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\admin;
+use App\Models\guru;
 use App\Models\konten;
 use App\Models\siswa;
 use App\Models\User;
@@ -24,7 +25,8 @@ class DatabaseSeeder extends Seeder
         ]);
         admin::factory()->dataadmin1()->create();
         admin::factory()->dataadmin2()->create();
-        siswa::factory()->count(5)->create();
+        siswa::factory()->count(15)->create();
+        guru::factory()->count(5)->create();
 
         // Seed konten data
         konten::factory()->count(3)->create();

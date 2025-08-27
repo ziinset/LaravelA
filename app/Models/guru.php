@@ -5,17 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class siswa extends Model
+class guru extends Model
 {
     use HasFactory;
-    protected $table = 'datasiswa';
-    protected $primaryKey = 'idsiswa';
-    protected $fillable = [
-        'id',
-        'nama',
-        'tb',
-        'bb'
-    ];
+    protected $table = 'dataguru';
+    protected $primaryKey = 'idguru';
+    protected $fillable = ['id', 'nama', 'mapel'];
 
     public function admin()
     {

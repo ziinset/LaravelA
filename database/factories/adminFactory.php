@@ -18,24 +18,25 @@ class adminFactory extends Factory
     public function definition(): array
     {
         return [
-            'username' => 'admin',
-            'password' => Hash::make('admin'),
+            'username' => $this->faker->unique()->userName,
+            'password' => Hash::make('123'),
+            'role' => 'siswa'
         ];
     }
     public function dataadmin1()
     {
-    return $this->state([
-    'username' => 'admin',
-    'password' => Hash::make('admin'),
-    'role' => 'admin',
-    ]);
+        return $this->state([
+            'username' => 'admin',
+            'password' => Hash::make('admin'),
+            'role' => 'admin',
+        ]);
     }
     public function dataadmin2()
     {
-    return $this->state([
-    'username' => 'guru',
-    'password' => Hash::make('guru'),
-    'role' => 'guru',
-    ]);
+        return $this->state([
+            'username' => 'guru',
+            'password' => Hash::make('guru'),
+            'role' => 'guru',
+        ]);
     }
 }
