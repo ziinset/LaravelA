@@ -13,6 +13,11 @@
     <p>Nama : {{ session('guru_nama') }}</p>
     <p>Mapel : {{ session('mapel') }}</p>
 
+    @if (!empty($extra['kelas_nama']))
+    <p>Wali Kelas: {{ $extra['kelas_nama'] }}</p>
+    <p>Jumlah Siswa: {{ $extra['jumlah_siswa'] }}</p>
+    @endif
+
 @elseif (session('role') === 'siswa')
     <h2>Halo, siswa {{ session('username') }}</h2>
     <a href="{{ route('logout') }}">Logout</a>
@@ -20,6 +25,11 @@
     <p>Nama : {{ session('siswa_nama') }}</p>
     <p>BB : {{ session('bb') }}</p>
     <p>TB : {{ session('tb') }}</p>
+
+    @if (!empty($extra['walas_nama']))
+    <p>Guru Walas : {{ $extra['walas_nama'] }}</p>
+    <p>Kelas : {{ $extra['kelas_nama'] }}</p>
+    @endif
 
 @else
     <h2>Halo, {{ session('username') }}</h2>
@@ -29,6 +39,10 @@
 <hr>
 
 <h2>Daftar Siswa</h2>
+
+@if (session('role') === 'admin')
+<p><a href="{{ route('siswa.create') }}">+ Tambah Siswa</a></p>
+@endif
 
 <table border="1" cellpadding="8">
 <thead>

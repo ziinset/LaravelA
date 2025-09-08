@@ -13,8 +13,42 @@ class SiswaController extends Controller
             return redirect()->route('login');
         }
 
+        // Ambil semua siswa untuk tabel daftar
         $siswa = siswa::all();
-        return view('home', compact('siswa'));
+
+        // Siapkan data tambahan sesuai role untuk ditampilkan di view
+        $extra = [];
+        $role = session('role');
+
+        if ($role === 'siswa') {
+            // tampilkan nama guru walas dan kelasnya jika siswa terdaftar pada suatu kelas
+            $loggedInStudent = siswa::where('id', session('user_id'))->first();
+            if ($loggedInStudent) {
+                // cari record datakelas berdasarkan idsiswa
+                $kelasRecord = \App\Models\kelas::with(['walas.guru'])
+                    ->where('idsiswa', $loggedInStudent->idsiswa)
+                    ->first();
+                if ($kelasRecord && $kelasRecord->walas && $kelasRecord->walas->guru) {
+                    $extra['walas_nama'] = $kelasRecord->walas->guru->nama;
+                    $extra['kelas_nama'] = $kelasRecord->walas->namakelas;
+                }
+            }
+        } elseif ($role === 'guru') {
+            // Jika guru juga menjadi walas, tampilkan nama kelas dan jumlah siswa
+            $guru = \App\Models\guru::where('id', session('user_id'))->first();
+            if ($guru) {
+                $walas = \App\Models\walas::where('idguru', $guru->idguru)->first();
+                if ($walas) {
+                    $kelasSiswa = \App\Models\kelas::where('idwalas', $walas->idwalas)
+                        ->with('walas')
+                        ->get();
+                    $extra['kelas_nama'] = $walas->namakelas;
+                    $extra['jumlah_siswa'] = $kelasSiswa->count();
+                }
+            }
+        }
+
+        return view('home', compact('siswa', 'extra'));
     }
 
     public function create()
@@ -30,7 +64,7 @@ class SiswaController extends Controller
         if (session('role') !== 'admin') {
             return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk menambah siswa');
         }
-        
+
         siswa::create($request->only('nama', 'tb', 'bb'));
         return redirect()->route('home')->with('success', 'Siswa berhasil ditambahkan');
     }
@@ -40,7 +74,7 @@ class SiswaController extends Controller
         if (session('role') !== 'admin') {
             return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk mengedit siswa');
         }
-        
+
         $siswa = siswa::findOrFail($id);
         return view('siswa.edit', compact('siswa'));
     }
@@ -50,7 +84,7 @@ class SiswaController extends Controller
         if (session('role') !== 'admin') {
             return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk mengupdate siswa');
         }
-        
+
         $siswa = siswa::findOrFail($id);
         $siswa->update($request->only('nama', 'tb', 'bb'));
         return redirect()->route('home')->with('success', 'Data siswa berhasil diupdate');
@@ -61,7 +95,7 @@ class SiswaController extends Controller
         if (session('role') !== 'admin') {
             return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk menghapus siswa');
         }
-        
+
         $siswa = siswa::findOrFail($id);
         $siswa->delete();
         return redirect()->route('home')->with('success', 'Siswa berhasil dihapus');
