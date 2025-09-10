@@ -21,4 +21,12 @@ class siswa extends Model
     {
         return $this->belongsTo(admin::class, 'id');
     }
+    
+    /**
+     * Get the kelas records associated with the student.
+     */
+    public function kelas()
+    {
+        return $this->hasMany(\App\Models\kelas::class, 'idsiswa', 'idsiswa');
+    }
 }

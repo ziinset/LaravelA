@@ -14,27 +14,33 @@ class SiswaController extends Controller
             return redirect()->route('login');
         }
 
-        // Ambil semua siswa untuk tabel daftar
-        $siswa = siswa::all();
-
         // Siapkan data tambahan sesuai role untuk ditampilkan di view
         $extra = [];
         $role = session('role');
+        $siswa = collect(); // Inisialisasi koleksi siswa kosong
+
+        // Set tahun ajaran (bisa diambil dari database atau settingan)
+        $tahunAjaran = '2024/2025'; // Default value, bisa diganti dengan nilai dari database
+        $extra['tahun_ajaran'] = $tahunAjaran;
 
         if ($role === 'siswa') {
-            // tampilkan nama guru walas dan kelasnya jika siswa terdaftar pada suatu kelas
+            // Tampilkan nama guru walas dan kelasnya jika siswa terdaftar pada suatu kelas
             $loggedInStudent = siswa::where('id', session('user_id'))->first();
             if ($loggedInStudent) {
-                // cari record datakelas berdasarkan idsiswa
+                // Cari record datakelas berdasarkan idsiswa
                 $kelasRecord = \App\Models\kelas::with(['walas.guru'])
                     ->where('idsiswa', $loggedInStudent->idsiswa)
                     ->first();
                 if ($kelasRecord && $kelasRecord->walas && $kelasRecord->walas->guru) {
                     $extra['walas_nama'] = $kelasRecord->walas->guru->nama;
                     $extra['kelas_nama'] = $kelasRecord->walas->namakelas;
+                    $extra['tahun_ajaran'] = $tahunAjaran;
                 }
             }
-        } elseif ($role === 'guru') {
+            // Ambil data siswa yang satu kelas
+            $siswa = $this->getSiswaByKelas($kelasRecord->idwalas ?? null);
+        } 
+        elseif ($role === 'guru') {
             // Jika guru juga menjadi walas, tampilkan nama kelas dan jumlah siswa
             $guru = \App\Models\guru::where('id', session('user_id'))->first();
             if ($guru) {
@@ -43,13 +49,44 @@ class SiswaController extends Controller
                     $kelasSiswa = \App\Models\kelas::where('idwalas', $walas->idwalas)
                         ->with('walas')
                         ->get();
+                    
                     $extra['kelas_nama'] = $walas->namakelas;
                     $extra['jumlah_siswa'] = $kelasSiswa->count();
+                    $extra['tahun_ajaran'] = $tahunAjaran;
+                    
+                    // Ambil data siswa yang satu kelas dengan walas ini
+                    $siswa = $this->getSiswaByKelas($walas->idwalas);
+                } else {
+                    // Jika guru bukan walas, tampilkan semua siswa
+                    $siswa = siswa::all();
                 }
+            } else {
+                $siswa = siswa::all();
             }
+        } 
+        else {
+            // Untuk admin atau role lain, tampilkan semua siswa
+            $siswa = siswa::all();
         }
 
         return view('home', compact('siswa', 'extra'));
+    }
+
+    /**
+     * Mendapatkan daftar siswa berdasarkan idwalas
+     *
+     * @param int|null $idwalas
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    private function getSiswaByKelas($idwalas = null)
+    {
+        if (!$idwalas) {
+            return collect();
+        }
+
+        return \App\Models\siswa::whereHas('kelas', function($query) use ($idwalas) {
+            $query->where('idwalas', $idwalas);
+        })->get();
     }
 
     public function create()
@@ -66,10 +103,19 @@ class SiswaController extends Controller
             return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk menambah siswa');
         }
 
+        // Validasi input
+        $request->validate([
+            'username' => 'required|string|max:50|unique:dataadmin,username',
+            'password' => 'required|string|min:6',
+            'nama' => 'required|string|max:100',
+            'tb' => 'required|numeric|min:1|max:300',
+            'bb' => 'required|numeric|min:1|max:500'
+        ]);
+
         // Buat record admin terlebih dahulu dengan role 'siswa'
         $admin = \App\Models\admin::create([
-            'username' => $request->nama . '_siswa', // username otomatis dari nama
-            'password' => Hash::make('password123'), // password default
+            'username' => $request->username,
+            'password' => Hash::make($request->password),
             'role' => 'siswa'
         ]);
 
