@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\siswa;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class SiswaController extends Controller
 {
@@ -65,7 +66,21 @@ class SiswaController extends Controller
             return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk menambah siswa');
         }
 
-        siswa::create($request->only('nama', 'tb', 'bb'));
+        // Buat record admin terlebih dahulu dengan role 'siswa'
+        $admin = \App\Models\admin::create([
+            'username' => $request->nama . '_siswa', // username otomatis dari nama
+            'password' => Hash::make('password123'), // password default
+            'role' => 'siswa'
+        ]);
+
+        // Buat record siswa dengan id dari admin yang baru dibuat
+        siswa::create([
+            'id' => $admin->id,
+            'nama' => $request->nama,
+            'tb' => $request->tb,
+            'bb' => $request->bb
+        ]);
+
         return redirect()->route('home')->with('success', 'Siswa berhasil ditambahkan');
     }
 
@@ -75,7 +90,7 @@ class SiswaController extends Controller
             return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk mengedit siswa');
         }
 
-        $siswa = siswa::findOrFail($id);
+        $siswa = siswa::where('id', $id)->firstOrFail();
         return view('siswa.edit', compact('siswa'));
     }
 
@@ -85,7 +100,7 @@ class SiswaController extends Controller
             return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk mengupdate siswa');
         }
 
-        $siswa = siswa::findOrFail($id);
+        $siswa = siswa::where('id', $id)->firstOrFail();
         $siswa->update($request->only('nama', 'tb', 'bb'));
         return redirect()->route('home')->with('success', 'Data siswa berhasil diupdate');
     }
@@ -96,7 +111,7 @@ class SiswaController extends Controller
             return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk menghapus siswa');
         }
 
-        $siswa = siswa::findOrFail($id);
+        $siswa = siswa::where('id', $id)->firstOrFail();
         $siswa->delete();
         return redirect()->route('home')->with('success', 'Siswa berhasil dihapus');
     }
