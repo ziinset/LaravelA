@@ -3,6 +3,7 @@
 use App\Http\Controllers\adminController;
 use App\Http\Controllers\kontenController;
 use App\Http\Controllers\siswaController;
+use App\Http\Controllers\kbmController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [kontenController::class, 'landing'])->name('landing');
@@ -18,3 +19,8 @@ Route::get('/logout', [adminController::class, 'logout'])->name('logout');
 Route::get('/register', [adminController::class, 'formregister'])->name('register');
 Route::post('/register', [adminController::class, 'prosesRegister'])->name('register.post');
 Route::get('/detil/{id}', [kontenController::class, 'detil'])->name('detil');
+
+// KBM (Jadwal) routes
+Route::get('/kbm', [kbmController::class, 'index'])->name('kbm.index');
+Route::get('/kbm/guru/{idguru}', [kbmController::class, 'showGuru'])->name('kbm.guru');
+Route::get('/kbm/kelas/{idwalas}', [kbmController::class, 'showKelas'])->name('kbm.kelas');

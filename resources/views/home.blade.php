@@ -32,7 +32,7 @@
 </head>
 <body>
 
-{{-- Tampilkan sesuai role --}}
+{{-- Tampilan sesuai role --}}
 @if (session('role') === 'guru')
     <div class="profile">
         <h2>Halo, {{ session('guru_nama') }}</h2>
@@ -45,6 +45,17 @@
             <p><strong>Tahun Ajaran:</strong> {{ $extra['tahun_ajaran'] ?? '2024/2025' }}</p>
             <p><strong>Jumlah Siswa:</strong> {{ $extra['jumlah_siswa'] }}</p>
         @endif
+        {{-- Tampilkan tombol KBM: semua guru dapat tombol, khusus walas teks diperpanjang --}}
+        @if (!empty($extra['kelas_nama']))
+            <p>
+                <a href="{{ route('kbm.index') }}" class="btn">Lihat Jadwal KBM (Kegiatan Belajar Mengajar)</a>
+            </p>
+        @else
+            <p>
+                <a href="{{ route('kbm.index') }}" class="btn">Lihat Jadwal KBM</a>
+            </p>
+        @endif
+
         <p><a href="{{ route('logout') }}" class="btn">Logout</a></p>
     </div>
 
@@ -61,24 +72,31 @@
             <p><strong>Kelas:</strong> {{ $extra['kelas_nama'] }}</p>
             <p><strong>Tahun Ajaran:</strong> {{ $extra['tahun_ajaran'] ?? '2024/2025' }}</p>
         @endif
+
+        <p>
+            <a href="{{ route('kbm.index') }}" class="btn">Lihat Jadwal KBM</a>
+        </p>
+
         <p><a href="{{ route('logout') }}" class="btn">Logout</a></p>
     </div>
 
 @else
+    {{-- Default (admin atau role lain) --}}
     <div class="profile">
         <h2>Halo, {{ session('username') }}</h2>
         <p><a href="{{ route('logout') }}" class="btn">Logout</a></p>
     </div>
 @endif
 
-@if (session('role') !== 'siswa')
-    <hr>
+
+{{-- Tabel hanya untuk Admin --}}
+@if (session('role') === 'admin')
 
     <h2>Daftar Siswa</h2>
-
-    @if (session('role') === 'admin')
-        <p><a href="{{ route('siswa.create') }}" class="btn">+ Tambah Siswa</a></p>
-    @endif
+    <p>
+        <a href="{{ route('kbm.index') }}" class="btn">Lihat Jadwal KBM</a>
+        <a href="{{ route('siswa.create') }}" class="btn">+ Tambah Siswa</a>
+    </p>
 
     @if(count($siswa) > 0)
         <table>
@@ -88,9 +106,7 @@
                     <th>Nama</th>
                     <th>Tinggi Badan (cm)</th>
                     <th>Berat Badan (kg)</th>
-                    @if (session('role') === 'admin')
-                        <th>Aksi</th>
-                    @endif
+                    <th>Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -100,14 +116,12 @@
                         <td>{{ $s->nama }}</td>
                         <td>{{ $s->tb }}</td>
                         <td>{{ $s->bb }}</td>
-                        @if (session('role') === 'admin')
-                            <td>
-                                <a href="{{ route('siswa.edit', $s->id) }}" class="btn">Edit</a>
-                                <a href="{{ route('siswa.delete', $s->id) }}"
-                                   onclick="return confirm('Yakin ingin menghapus?')"
-                                   class="btn btn-danger">Hapus</a>
-                            </td>
-                        @endif
+                        <td>
+                            <a href="{{ route('siswa.edit', $s->id) }}" class="btn">Edit</a>
+                            <a href="{{ route('siswa.delete', $s->id) }}"
+                               onclick="return confirm('Yakin ingin menghapus?')"
+                               class="btn btn-danger">Hapus</a>
+                        </td>
                     </tr>
                 @endforeach
             </tbody>
@@ -115,6 +129,37 @@
     @else
         <p>Tidak ada data siswa yang ditemukan.</p>
     @endif
+
+{{-- Tabel hanya untuk Guru Walas --}}
+@elseif (session('role') === 'guru' && !empty($extra['kelas_nama']))
+
+    <h2>Daftar Siswa di Kelas {{ $extra['kelas_nama'] }}</h2>
+
+    @if(count($siswa) > 0)
+        <table>
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Nama</th>
+                    <th>Tinggi Badan (cm)</th>
+                    <th>Berat Badan (kg)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($siswa as $i => $s)
+                    <tr>
+                        <td>{{ $i + 1 }}</td>
+                        <td>{{ $s->nama }}</td>
+                        <td>{{ $s->tb }}</td>
+                        <td>{{ $s->bb }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @else
+        <p>Belum ada data siswa untuk kelas ini.</p>
+    @endif
+
 @endif
 
 </body>

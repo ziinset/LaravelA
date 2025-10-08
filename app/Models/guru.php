@@ -16,4 +16,9 @@ class guru extends Model
     {
         return $this->belongsTo(admin::class, 'id');
     }
+
+    public function kbm()
+    {
+    return $this->hasMany(kbm::class);
+    }
 }
