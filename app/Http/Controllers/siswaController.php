@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreSiswaRequest;
 use App\Models\siswa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -10,72 +11,29 @@ class SiswaController extends Controller
 {
     public function home()
     {
-        if (!session()->has('user_id')) {
-            return redirect()->route('login');
-        }
+        // Logic for preparing home is now handled in middleware `cekrole`.
+        // This fallback will redirect to /home so middleware can render the view.
+        return redirect()->route('home');
+    }
 
-        // Siapkan data tambahan sesuai role untuk ditampilkan di view
-        $extra = [];
-        $role = session('role');
-        $siswa = collect(); // Inisialisasi koleksi siswa kosong
+    protected $service;
 
-        // Set tahun ajaran (bisa diambil dari database atau settingan)
-        $tahunAjaran = '2024/2025'; // Default value, bisa diganti dengan nilai dari database
-        $extra['tahun_ajaran'] = $tahunAjaran;
+    public function __construct($service)
+    {
+        $this->service = $service;
+    }
 
-        if ($role === 'siswa') {
-            // Tampilkan nama guru walas dan kelasnya jika siswa terdaftar pada suatu kelas
-            $loggedInStudent = siswa::where('id', session('user_id'))->first();
-            if ($loggedInStudent) {
-                // Cari record datakelas berdasarkan idsiswa
-                $kelasRecord = \App\Models\kelas::with(['walas.guru'])
-                    ->where('idsiswa', $loggedInStudent->idsiswa)
-                    ->first();
-                if ($kelasRecord && $kelasRecord->walas && $kelasRecord->walas->guru) {
-                    $extra['walas_nama'] = $kelasRecord->walas->guru->nama;
-                    $extra['kelas_nama'] = $kelasRecord->walas->namakelas;
-                    $extra['tahun_ajaran'] = $tahunAjaran;
-                }
-            }
-            // Ambil data siswa yang satu kelas
-            $siswa = $this->getSiswaByKelas($kelasRecord->idwalas ?? null);
-        } 
-        elseif ($role === 'guru') {
-            // Jika guru juga menjadi walas, tampilkan nama kelas dan jumlah siswa
-            $guru = \App\Models\guru::where('id', session('user_id'))->first();
-            if ($guru) {
-                $walas = \App\Models\walas::where('idguru', $guru->idguru)->first();
-                if ($walas) {
-                    $kelasSiswa = \App\Models\kelas::where('idwalas', $walas->idwalas)
-                        ->with('walas')
-                        ->get();
-                    
-                    $extra['kelas_nama'] = $walas->namakelas;
-                    $extra['jumlah_siswa'] = $kelasSiswa->count();
-                    $extra['tahun_ajaran'] = $tahunAjaran;
-                    
-                    // Ambil data siswa yang satu kelas dengan walas ini
-                    $siswa = $this->getSiswaByKelas($walas->idwalas);
-                } else {
-                    // Jika guru bukan walas, tampilkan semua siswa
-                    $siswa = siswa::all();
-                }
-            } else {
-                $siswa = siswa::all();
-            }
-        } 
-        else {
-            // Untuk admin atau role lain, tampilkan semua siswa
-            $siswa = siswa::all();
-        }
+    public function getData()
+    {
+        $siswa = Siswa::all();
 
-        return view('home', compact('siswa', 'extra'));
+        return response()->json($siswa);
     }
 
     /**
      * Mendapatkan daftar siswa berdasarkan idwalas
      *
-     * @param int|null $idwalas
+     * @param  int|null  $idwalas
      * @return \Illuminate\Database\Eloquent\Collection
      */
     private function getSiswaByKelas($idwalas = null)
@@ -84,7 +42,7 @@ class SiswaController extends Controller
             return collect();
         }
 
-        return \App\Models\siswa::whereHas('kelas', function($query) use ($idwalas) {
+        return siswa::whereHas('kelas', function ($query) use ($idwalas) {
             $query->where('idwalas', $idwalas);
         })->get();
     }
@@ -94,40 +52,15 @@ class SiswaController extends Controller
         if (session('role') !== 'admin') {
             return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk menambah siswa');
         }
+
         return view('siswa.create');
     }
 
-    public function store(Request $request)
+    public function store(StoreSiswaRequest $request)
     {
-        if (session('role') !== 'admin') {
-            return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk menambah siswa');
-        }
-
-        // Validasi input
-        $request->validate([
-            'username' => 'required|string|max:50|unique:dataadmin,username',
-            'password' => 'required|string|min:6',
-            'nama' => 'required|string|max:100',
-            'tb' => 'required|numeric|min:1|max:300',
-            'bb' => 'required|numeric|min:1|max:500'
-        ]);
-
-        // Buat record admin terlebih dahulu dengan role 'siswa'
-        $admin = \App\Models\admin::create([
-            'username' => $request->username,
-            'password' => Hash::make($request->password),
-            'role' => 'siswa'
-        ]);
-
-        // Buat record siswa dengan id dari admin yang baru dibuat
-        siswa::create([
-            'id' => $admin->id,
-            'nama' => $request->nama,
-            'tb' => $request->tb,
-            'bb' => $request->bb
-        ]);
-
-        return redirect()->route('home')->with('success', 'Siswa berhasil ditambahkan');
+        $this->service->createSiswa($request->validated());
+        return redirect()->route('home')->with('success', 'Data siswa berhasil
+        ditambahkan!');
     }
 
     public function edit($id)
@@ -135,8 +68,8 @@ class SiswaController extends Controller
         if (session('role') !== 'admin') {
             return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk mengedit siswa');
         }
-
         $siswa = siswa::where('id', $id)->firstOrFail();
+
         return view('siswa.edit', compact('siswa'));
     }
 
@@ -148,6 +81,7 @@ class SiswaController extends Controller
 
         $siswa = siswa::where('id', $id)->firstOrFail();
         $siswa->update($request->only('nama', 'tb', 'bb'));
+
         return redirect()->route('home')->with('success', 'Data siswa berhasil diupdate');
     }
 
@@ -159,6 +93,16 @@ class SiswaController extends Controller
 
         $siswa = siswa::where('id', $id)->firstOrFail();
         $siswa->delete();
+
         return redirect()->route('home')->with('success', 'Siswa berhasil dihapus');
+    }
+
+    public function search(Request $request)
+    {
+        $keyword = strtolower($request->input('q'));
+        $siswa = Siswa::whereRaw('LOWER(nama) LIKE ?', ["%{$keyword}%"])
+            ->get();
+
+        return response()->json($siswa);
     }
 }

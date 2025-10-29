@@ -42,7 +42,7 @@ class kbmController extends Controller
                     $jadwals = kbm::with(['guru', 'walas'])
                         ->whereHas('walas', function($query) use ($kelasRecord) {
                             $query->where('jenjang', $kelasRecord->walas->jenjang)
-                                  ->where('namakelas', $kelasRecord->walas->namakelas);
+                                ->where('namakelas', $kelasRecord->walas->namakelas);
                         })
                         ->get();
                 } else {
@@ -69,5 +69,77 @@ class kbmController extends Controller
     {
         $walas = walas::with(['kbm.guru'])->findOrFail($idwalas);
         return view('kbm.kelas', compact('walas'));
+    }
+
+    public function search(Request $request)
+    {
+        try {
+            $namaGuru = $request->get('nama_guru');
+            $hari = $request->get('hari');
+
+            // Start with base query
+            $query = kbm::with(['guru', 'walas']);
+
+            // Apply role-based filtering first
+            if (session('role') === 'guru' && session('user_id')) {
+                $guru = guru::where('id', session('user_id'))->first();
+                if ($guru) {
+                    $query->where('idguru', $guru->idguru);
+                } else {
+                    return response()->json([
+                        'success' => true,
+                        'jadwals' => []
+                    ]);
+                }
+            } elseif (session('role') === 'siswa' && session('user_id')) {
+                $loggedInStudent = siswa::where('id', session('user_id'))->first();
+                if ($loggedInStudent) {
+                    $kelasRecord = kelas::with(['walas'])
+                        ->where('idsiswa', $loggedInStudent->idsiswa)
+                        ->first();
+
+                    if ($kelasRecord && $kelasRecord->walas) {
+                        $query->whereHas('walas', function($q) use ($kelasRecord) {
+                            $q->where('jenjang', $kelasRecord->walas->jenjang)
+                              ->where('namakelas', $kelasRecord->walas->namakelas);
+                        });
+                    } else {
+                        return response()->json([
+                            'success' => true,
+                            'jadwals' => []
+                        ]);
+                    }
+                } else {
+                    return response()->json([
+                        'success' => true,
+                        'jadwals' => []
+                    ]);
+                }
+            }
+
+            // Apply search filters
+            if ($namaGuru) {
+                $query->whereHas('guru', function($q) use ($namaGuru) {
+                    $q->where('nama', 'like', '%' . $namaGuru . '%');
+                });
+            }
+
+            if ($hari) {
+                $query->where('hari', $hari);
+            }
+
+            $jadwals = $query->get();
+
+            return response()->json([
+                'success' => true,
+                'jadwals' => $jadwals
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mencari data: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

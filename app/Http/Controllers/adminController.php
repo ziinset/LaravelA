@@ -59,8 +59,16 @@ class adminController extends Controller
 
     public function logout()
     {
-        //hapus session
-        session()->forget(['user_id', 'username', 'role']);
+        // Hapus semua kunci session yang mungkin diset saat login
+        session()->forget([
+            'user_id', 'admin_id',
+            'username', 'admin_username',
+            'role',
+            // role-specific
+            'guru_nama', 'mapel',
+            'siswa_nama', 'tb', 'bb'
+        ]);
+
         return redirect()->route('landing');
     }
 

@@ -11,7 +11,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'ceklogin' => \App\Http\Middleware\ceklogin::class,
+            'cekrole' => \App\Http\Middleware\cekrole::class,
+            'kbmMiddleware' => \App\Http\Middleware\KbmMiddleware::class,
+            'crudDataSiswaMiddleware' => \App\Http\Middleware\CrudDataSiswaMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
