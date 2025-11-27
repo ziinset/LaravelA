@@ -3,106 +3,107 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreSiswaRequest;
+use App\Http\Requests\UpdateSiswaRequest;
 use App\Models\siswa;
+use App\Services\SiswaService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 
 class SiswaController extends Controller
 {
-    public function home()
-    {
-        // Logic for preparing home is now handled in middleware `cekrole`.
-        // This fallback will redirect to /home so middleware can render the view.
-        return redirect()->route('home');
-    }
+	public function home()
+	{
+		// Logic for preparing home is now handled in middleware `cekrole`.
+		// This fallback will redirect to /home so middleware can render the view.
+		return redirect()->route('home');
+	}
 
-    protected $service;
+	protected $service;
 
-    public function __construct($service)
-    {
-        $this->service = $service;
-    }
+	public function __construct(SiswaService $service)
+	{
+		$this->service = $service;
+	}
 
-    public function getData()
-    {
-        $siswa = Siswa::all();
+	public function getData()
+	{
+		$siswa = Siswa::all();
 
-        return response()->json($siswa);
-    }
+		return response()->json($siswa);
+	}
 
-    /**
-     * Mendapatkan daftar siswa berdasarkan idwalas
-     *
-     * @param  int|null  $idwalas
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    private function getSiswaByKelas($idwalas = null)
-    {
-        if (!$idwalas) {
-            return collect();
-        }
+	/**
+	 * Mendapatkan daftar siswa berdasarkan idwalas
+	 *
+	 * @param  int|null  $idwalas
+	 * @return \Illuminate\Database\Eloquent\Collection
+	 */
+	private function getSiswaByKelas($idwalas = null)
+	{
+		if (! $idwalas) {
+			return collect();
+		}
 
-        return siswa::whereHas('kelas', function ($query) use ($idwalas) {
-            $query->where('idwalas', $idwalas);
-        })->get();
-    }
+		return siswa::whereHas('kelas', function ($query) use ($idwalas) {
+			$query->where('idwalas', $idwalas);
+		})->get();
+	}
 
-    public function create()
-    {
-        if (session('role') !== 'admin') {
-            return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk menambah siswa');
-        }
+	public function create()
+	{
+		if (session('role') !== 'admin') {
+			return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk menambah siswa');
+		}
 
-        return view('siswa.create');
-    }
+		return view('siswa.create');
+	}
 
-    public function store(StoreSiswaRequest $request)
-    {
-        $this->service->createSiswa($request->validated());
-        return redirect()->route('home')->with('success', 'Data siswa berhasil
-        ditambahkan!');
-    }
+	public function store(StoreSiswaRequest $request)
+	{
+		$this->service->createSiswa($request->validated());
 
-    public function edit($id)
-    {
-        if (session('role') !== 'admin') {
-            return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk mengedit siswa');
-        }
-        $siswa = siswa::where('id', $id)->firstOrFail();
+		return redirect()->route('home')->with('success', 'Data siswa berhasil
+		ditambahkan!');
+	}
 
-        return view('siswa.edit', compact('siswa'));
-    }
+	public function edit($id)
+	{
+		if (session('role') !== 'admin') {
+			return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk mengedit siswa');
+		}
+		$siswa = siswa::where('id', $id)->firstOrFail();
 
-    public function update(Request $request, $id)
-    {
-        if (session('role') !== 'admin') {
-            return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk mengupdate siswa');
-        }
+		return view('siswa.edit', compact('siswa'));
+	}
 
-        $siswa = siswa::where('id', $id)->firstOrFail();
-        $siswa->update($request->only('nama', 'tb', 'bb'));
+	public function update(UpdateSiswaRequest $request, $id)
+	{
+		if (session('role') !== 'admin') {
+			return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk mengupdate siswa');
+		}
 
-        return redirect()->route('home')->with('success', 'Data siswa berhasil diupdate');
-    }
+		$this->service->updateSiswa((int) $id, $request->validated());
 
-    public function destroy($id)
-    {
-        if (session('role') !== 'admin') {
-            return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk menghapus siswa');
-        }
+		return redirect()->route('home')->with('success', 'Data siswa berhasil diupdate');
+	}
 
-        $siswa = siswa::where('id', $id)->firstOrFail();
-        $siswa->delete();
+	public function destroy($id)
+	{
+		if (session('role') !== 'admin') {
+			return redirect()->route('home')->with('error', 'Anda tidak memiliki akses untuk menghapus siswa');
+		}
 
-        return redirect()->route('home')->with('success', 'Siswa berhasil dihapus');
-    }
+		$siswa = siswa::where('id', $id)->firstOrFail();
+		$siswa->delete();
 
-    public function search(Request $request)
-    {
-        $keyword = strtolower($request->input('q'));
-        $siswa = Siswa::whereRaw('LOWER(nama) LIKE ?', ["%{$keyword}%"])
-            ->get();
+		return redirect()->route('home')->with('success', 'Siswa berhasil dihapus');
+	}
 
-        return response()->json($siswa);
-    }
+	public function search(Request $request)
+	{
+		$keyword = strtolower($request->input('q'));
+		$siswa = Siswa::whereRaw('LOWER(nama) LIKE ?', ["%{$keyword}%"])
+			->get();
+
+		return response()->json($siswa);
+	}
 }

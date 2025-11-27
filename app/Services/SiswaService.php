@@ -17,4 +17,9 @@ class SiswaService
     {
         return $this->repo->create($data);
     }
+
+    public function updateSiswa(int $adminId, array $data)
+    {
+        return $this->repo->updateByAdminId($adminId, $data);
+    }
 }

@@ -10,7 +10,6 @@ use App\Models\walas;
 use App\Models\siswa;
 
 class kbmController extends Controller
-
 {
     public function index()
     {
@@ -40,7 +39,7 @@ class kbmController extends Controller
                 if ($kelasRecord && $kelasRecord->walas) {
                     // Get KBM data for the student's class (jenjang and namakelas)
                     $jadwals = kbm::with(['guru', 'walas'])
-                        ->whereHas('walas', function($query) use ($kelasRecord) {
+                        ->whereHas('walas', function ($query) use ($kelasRecord) {
                             $query->where('jenjang', $kelasRecord->walas->jenjang)
                                 ->where('namakelas', $kelasRecord->walas->namakelas);
                         })
@@ -99,9 +98,9 @@ class kbmController extends Controller
                         ->first();
 
                     if ($kelasRecord && $kelasRecord->walas) {
-                        $query->whereHas('walas', function($q) use ($kelasRecord) {
+                        $query->whereHas('walas', function ($q) use ($kelasRecord) {
                             $q->where('jenjang', $kelasRecord->walas->jenjang)
-                              ->where('namakelas', $kelasRecord->walas->namakelas);
+                                ->where('namakelas', $kelasRecord->walas->namakelas);
                         });
                     } else {
                         return response()->json([
@@ -119,7 +118,7 @@ class kbmController extends Controller
 
             // Apply search filters
             if ($namaGuru) {
-                $query->whereHas('guru', function($q) use ($namaGuru) {
+                $query->whereHas('guru', function ($q) use ($namaGuru) {
                     $q->where('nama', 'like', '%' . $namaGuru . '%');
                 });
             }
